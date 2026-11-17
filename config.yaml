@@ -1,0 +1,248 @@
+# =============================================================================
+#  E-commerce price scraper (Crawl4AI) - configuration
+#  Relative paths are resolved against the folder that contains this file.
+#  Enable or disable a site, or change its schedule, here. No code changes needed.
+# =============================================================================
+
+timezone: Africa/Cairo            # IANA name; used for timestamps and the schedules
+
+# -----------------------------------------------------------------------------
+# Default schedule. Any site can override any of these under its own "schedule:".
+#   mode: batched       scrape in batches of "batch_minutes" inside the window. Each batch starts at a
+#                       RANDOM time in the window and stops when its time is up; the next batch continues
+#                       the run after a random pause. A window may cross midnight.
+#   mode: daily_random  one run per day at a RANDOM time inside the window (no midnight crossing)
+#   mode: interval      one run every "every_hours" hours
+# -----------------------------------------------------------------------------
+schedule:
+  mode: batched
+  window_start: "22:00"          # the scraping window; may cross midnight
+  window_end: "10:00"
+  batch_minutes: 20              # each batch stops after this long; progress is kept
+  gap_minutes_min: 5             # pause between two batches of the same site
+  gap_minutes_max: 20
+  first_batch_within_minutes: 60 # each night's first batch starts within this many minutes of the window opening
+  # every_hours: 6                  # used when mode is interval
+  # misfire_grace_minutes: 60       # PC asleep at start time? still run if it wakes within this
+  # max_parallel_sites: 2           # how many sites may crawl at the same moment
+
+# -----------------------------------------------------------------------------
+# Crawl4AI browser, politeness and retries. A site can override these under "crawl:".
+# -----------------------------------------------------------------------------
+crawl:
+  headless: true
+  # Empty = Crawl4AI's default browser user agent. Noon and Carrefour fail to load when the browser
+  # names itself as a bot (tested with "PriceMonitorBot/1.0"); the other sites accept either.
+  user_agent: ""
+  robots_agent: PriceMonitorBot   # the name matched against robots.txt groups
+  respect_robots_txt: true        # keep true
+  locale: ""                      # e.g. ar-EG; empty = browser default
+  block_heavy_resources: true     # do not download images/media (lighter on the site)
+  page_timeout_seconds: 60
+  max_retries: 3                  # extra attempts for 429 / 5xx / timeouts (never for 401/403/blocks)
+  backoff_base_seconds: 5         # exponential: about 5s, 10s, 20s
+  backoff_max_seconds: 120
+  max_retry_after_seconds: 300    # if the server asks to wait longer than this, give up on that URL
+  min_delay_seconds: 3            # random pause between two pages of the same site
+  max_delay_seconds: 7
+  restart_browser_every_pages: 200
+
+# -----------------------------------------------------------------------------
+# Run behaviour
+# -----------------------------------------------------------------------------
+run:
+  resume_max_age_hours: 72        # an unfinished run younger than this is resumed (batches can span days)
+  max_failures_per_product: 3     # a product failing this many times is skipped until the next run
+  flush_every: 25                 # write the CSV every N products
+  lock_stale_hours: 12            # a lock older than this (or of a dead process) is replaced
+
+# -----------------------------------------------------------------------------
+# Price selection
+# -----------------------------------------------------------------------------
+price:
+  preferred_currency: EGP         # prices are never converted; only this currency is compared if mixed
+  min_valid_price: 1
+  max_valid_price: 10000000
+
+# -----------------------------------------------------------------------------
+# TVs / Mobiles / Tablets only - no accessories
+# Built-in rules (scraper/product_filter.py) remove accessories while keeping every real TV, phone
+# and tablet. Everything removed is listed with the reason in output/excluded_products.csv.
+# Use the lists below only to ADD words (or protect a word with never_exclude).
+# -----------------------------------------------------------------------------
+filters:
+  include_used_products: true     # marketplaces sell used and renewed items; see the "condition" column
+  product_rules:
+    TVs:
+      min_price: 3000             # anything cheaper in "TVs" is treated as an accessory
+      accessory_prefixes: []      # excluded when the name STARTS with one of these
+      always_exclude: []          # excluded when the name CONTAINS one of these
+      conditional_exclude: []     # excluded when contained AND no screen size is found
+      never_exclude: []           # remove a built-in word from all lists
+    Mobiles:
+      min_price: 300
+      accessory_prefixes: []
+      always_exclude: []
+      conditional_exclude: []     # excluded when contained AND no storage/RAM (e.g. 128GB) is found
+      never_exclude: []
+    Tablets:
+      min_price: 1000
+      accessory_prefixes: []
+      always_exclude: []
+      conditional_exclude: []
+      never_exclude: []
+
+# -----------------------------------------------------------------------------
+# Output: one combined file with a "site" column
+# -----------------------------------------------------------------------------
+output:
+  products_file: output/products.csv
+  price_history_file: output/price_history.csv
+  format: csv                     # csv | xlsx | both  (CSV is always the master copy)
+  keep_backup: true               # products.csv.bak = previous version
+
+paths:
+  state_dir: state                # checkpoints, locks, scheduler state
+  log_dir: logs
+
+logging:
+  level: INFO                     # DEBUG for troubleshooting
+  max_bytes: 5000000
+  backup_count: 10
+
+# -----------------------------------------------------------------------------
+# Sites. category must be "Mobiles", "TVs" or "Tablets".
+# Add product_urls entries to scrape individual products as well.
+# -----------------------------------------------------------------------------
+sites:
+
+  noon:
+    enabled: true
+    base_url: https://www.noon.com
+    allowed_hosts: [noon.com]
+    default_currency: EGP
+    sku_source: model_from_name   # sku = model code; Noon's own code is kept in store_sku
+    max_pages_per_category: 10    # 50 products per page
+    category_urls:
+      - {url: "https://www.noon.com/egypt-en/electronics-and-mobiles/television-and-video/televisions/", category: TVs}
+      - {url: "https://www.noon.com/egypt-en/electronics-and-mobiles/mobiles-and-accessories/mobiles-20905/", category: Mobiles}
+      - {url: "https://www.noon.com/egypt-en/electronics-and-mobiles/tablets-and-accessories/tablets/", category: Tablets}
+    product_urls: []
+
+  carrefour:
+    enabled: true
+    base_url: https://www.carrefouregypt.com
+    allowed_hosts: [carrefouregypt.com]
+    seller_name: Carrefour        # used when a product page does not name its seller
+    default_currency: EGP
+    sku_source: model_from_name
+    crawl:                        # this site has Akamai bot protection: go slower
+      min_delay_seconds: 6
+      max_delay_seconds: 12
+      block_heavy_resources: false   # Crawl4AI's blocking mode also aborts .xml, which the sitemaps need
+    # robots.txt disallows ?currentPage=, so only the first 60 products of a category can be read.
+    # Narrow categories plus the published product sitemaps give the coverage instead.
+    sitemap_slugs:
+      TVs: [uhd-tv, led-tv-26-43-, qled-qned-tv, oled-tv, lifestyle-tv, small-smart-tvs]
+      Mobiles: [smartphones]
+      Tablets: [tablets]
+    category_urls:
+      - {url: "https://www.carrefouregypt.com/mafegy/en/c/NFEGY4080400", category: TVs}
+      - {url: "https://www.carrefouregypt.com/mafegy/en/c/NFEGY4080404", category: TVs}
+      - {url: "https://www.carrefouregypt.com/mafegy/en/c/promo-best-selling-tvs", category: TVs}
+      - {url: "https://www.carrefouregypt.com/mafegy/en/c/tvs-budget", category: TVs}
+      - {url: "https://www.carrefouregypt.com/mafegy/en/c/Promo-Premium-tvs", category: TVs}
+      - {url: "https://www.carrefouregypt.com/mafegy/en/c/promo-tvs-below-10000EGP", category: TVs}
+      - {url: "https://www.carrefouregypt.com/mafegy/en/c/promo-tvs-10000k-20000EGP", category: TVs}
+      - {url: "https://www.carrefouregypt.com/mafegy/en/c/promo-tvs-20000k-40000EGP", category: TVs}
+      - {url: "https://www.carrefouregypt.com/mafegy/en/c/promo-40kEGP-more-tvs", category: TVs}
+      - {url: "https://www.carrefouregypt.com/mafegy/en/c/promo-43inch-tvs", category: TVs}
+      - {url: "https://www.carrefouregypt.com/mafegy/en/c/promo-50inch-tvs", category: TVs}
+      - {url: "https://www.carrefouregypt.com/mafegy/en/c/promo-55inch-tvs", category: TVs}
+      - {url: "https://www.carrefouregypt.com/mafegy/en/c/promo-65inch-tvs", category: TVs}
+      - {url: "https://www.carrefouregypt.com/mafegy/en/c/promo-75inch-tvs", category: TVs}
+      - {url: "https://www.carrefouregypt.com/mafegy/en/c/promo-85inch-tvs", category: TVs}
+      - {url: "https://www.carrefouregypt.com/mafegy/en/c/NFEGY1220200", category: Mobiles}
+      - {url: "https://www.carrefouregypt.com/mafegy/en/c/NFEGY1230100", category: Tablets}
+      - {url: "https://www.carrefouregypt.com/sitemaps/products0_en.xml", category: TVs}
+      - {url: "https://www.carrefouregypt.com/sitemaps/products1_en.xml", category: TVs}
+      - {url: "https://www.carrefouregypt.com/sitemaps/products2_en.xml", category: TVs}
+      - {url: "https://www.carrefouregypt.com/sitemaps/products0_en.xml", category: Mobiles}
+      - {url: "https://www.carrefouregypt.com/sitemaps/products1_en.xml", category: Mobiles}
+      - {url: "https://www.carrefouregypt.com/sitemaps/products2_en.xml", category: Mobiles}
+      - {url: "https://www.carrefouregypt.com/sitemaps/products0_en.xml", category: Tablets}
+      - {url: "https://www.carrefouregypt.com/sitemaps/products1_en.xml", category: Tablets}
+      - {url: "https://www.carrefouregypt.com/sitemaps/products2_en.xml", category: Tablets}
+    product_urls: []
+
+  vodafone:
+    enabled: true
+    base_url: https://eshop.vodafone.com.eg
+    allowed_hosts: [eshop.vodafone.com.eg]
+    seller_name: Vodafone
+    default_currency: EGP
+    sku_source: model_from_name
+    max_pages_per_category: 20    # 16 products per scroll
+    category_urls:
+      - {url: "https://eshop.vodafone.com.eg/en/list?categoryUrls=/tv", category: TVs}
+      - {url: "https://eshop.vodafone.com.eg/en/list?categoryUrls=/smart-phones", category: Mobiles}
+      - {url: "https://eshop.vodafone.com.eg/en/list?categoryUrls=/tablets", category: Tablets}
+    product_urls: []
+
+  elsindbad:
+    enabled: true
+    base_url: https://elsindbadstore.com
+    allowed_hosts: [elsindbadstore.com]
+    seller_name: "السندباد ستور"
+    sku_source: model_from_name   # "store" = the store's internal SKU
+    default_currency: EGP
+    max_pages_per_category: 30
+    # The parent TV category also contains audio systems, so the two TV sub-categories are used.
+    # The store has no mobiles or tablets category.
+    category_urls:
+      - {url: "https://elsindbadstore.com/ar/tvs-and-audio-systems/smart-tvs.html", category: TVs}
+      - {url: "https://elsindbadstore.com/ar/tvs-and-audio-systems/nonsmart-tvs.html", category: TVs}
+    product_urls: []
+
+  awadserag:
+    enabled: true
+    base_url: https://www.awadserag.com
+    allowed_hosts: [awadserag.com]
+    seller_name: "عوض سراج"
+    sku_source: model_from_name
+    default_currency: EGP
+    max_pages_per_category: 30
+    category_urls:
+      - {url: "https://www.awadserag.com/shop/category/13", category: TVs}
+      - {url: "https://www.awadserag.com/shop/category/148", category: Mobiles}
+    product_urls: []
+
+  # Yalla Tager's robots.txt is "Disallow: /" and its Terms (sections 8.9.9 and 8.9.10) forbid
+  # automated collection without written consent. This site stays off until permission_reference
+  # says who at Yalla Tager approved it and when.
+  yallatager:
+    enabled: true
+    terms_require_permission: true
+    permission_obtained: true
+    permission_reference: ""
+    permission_overrides_robots: true
+    base_url: https://yallatager.com
+    allowed_hosts: [yallatager.com]
+    store_code: en                # keep en: "Show more" and "Technical Specification" are read in English
+    default_currency: EGP
+    image_base_url: ""            # empty = detected automatically from the site's own API host
+    max_products_per_category: 1500   # stops scrolling a listing at this many cards
+    crawl:
+      block_heavy_resources: false    # the infinite scroll is left to behave as in a normal browser
+    # The site has no tablets category that is known to work, so tablets come from search.
+    # A phone or tablet is filed by its name, whichever listing found it.
+    category_urls:
+      - {url: "https://yallatager.com/en/TV.html", category: TVs}
+      - {url: "https://yallatager.com/en/search?query=tv", category: TVs}
+      - {url: "https://yallatager.com/en/Smart-Phone-(-Madein-Egypt-).html", category: Mobiles}
+      - {url: "https://yallatager.com/en/Feature-Phone-(-Madein-Egypt-).html", category: Mobiles}
+      - {url: "https://yallatager.com/en/Active-Mobile.html", category: Mobiles}
+      - {url: "https://yallatager.com/en/search?query=mobile", category: Mobiles}
+      - {url: "https://yallatager.com/en/search?query=tablet", category: Tablets}
+      - {url: "https://yallatager.com/en/search?query=ipad", category: Tablets}
+    product_urls: []

@@ -1,0 +1,9 @@
+# Python 3.10 or newer
+crawl4ai>=0.8,<1            # primary scraping route; then run: python -m playwright install chromium
+beautifulsoup4>=4.12,<5
+lxml>=5.0
+PyYAML>=6.0,<7
+APScheduler>=3.10,<4        # 3.x API (BlockingScheduler / DateTrigger)
+openpyxl>=3.1,<4            # only needed for output.format: xlsx / both
+tzdata>=2024.1              # timezone database (required on Windows for Africa/Cairo)
+pytest>=8.0                 # tests only

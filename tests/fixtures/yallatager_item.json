@@ -1,0 +1,54 @@
+{
+ "entity_id": "181990",
+ "type_id": "simple",
+ "sku": "195949822322-226",
+ "status": "1",
+ "visibility": "4",
+ "seller_id": "226",
+ "template_id": "49189",
+ "is_marketplace": "1",
+ "is_used": "0",
+ "name": "Apple iPhone 16 - 128GB/8GB - Pink (ضمان 24 شهر)",
+ "url_key": "Apple-iPhone-16-128GB-8GB-Pink-(ضمان-24-شهر)-226",
+ "url_path": "Apple-iPhone-16-128GB-8GB-Pink-(ضمان-24-شهر)-226.html",
+ "url_path_category": "Smart-Phone-(-Madein-Egypt-)/Apple/Apple-iPhone-16-128GB-8GB-Pink-(ضمان-24-شهر)-226.html",
+ "image": "/j/g/jggjgggggggg-removebg-preview_6.png",
+ "price": "54500.0000",
+ "special_price": null,
+ "final_price": 54500,
+ "is_in_stock": "1",
+ "is_salable": "1",
+ "stock_data": {
+  "is_in_stock": "1",
+  "qty": "1.0000"
+ },
+ "seller_disabled": "0",
+ "seller_deleted": "0",
+ "description": "<p style=\"text-align: center;\"><strong><span style=\"font-size: xx-large;\">Technical Specification</span></strong></p>\r\n<ul>\r\n<li><span style=\"font-size: large;\"><strong>Brand</strong>: Apple</span></li>\r\n<li><span style=\"font-size: large;\"><strong>Model Name</strong>: iPhone 16</span></li>\r\n<li><span style=\"font-size: large;\"><strong>Color</strong>:&nbsp;Pink</span></li>\r\n<li><span style=\"font-size: large;\"><strong>Storage Capacity</strong>: 128 GB</span></li>\r\n<li><span style=\"font-size: large;\"><strong>RAM</strong>: 8 GB</span></li>\r\n<li><span style=\"font-size: large;\"><strong>Operating System Type</strong>: iOS 18</span></li>\r\n<li><span style=\"font-size: large;\"><strong>Resolution</strong>: 1179 x 2556</span></li>\r\n<li><span style=\"font-size: large;\"><strong>Display Size</strong>: 6.1 Inch</span></li>\r\n<li><span style=\"font-size: large;\"><strong>Dimensions</strong>: 147.6 x 71.6 x 7.8 mm</span></li>\r\n<li><span style=\"font-size: large;\"><strong>Face ID</strong>: Yes</span></li>\r\n</ul>",
+ "attributes": [
+  {
+   "code": "manufacturer",
+   "label": "الماركة",
+   "value": "أبل"
+  },
+  {
+   "code": "color",
+   "label": "اللون",
+   "value": "روز"
+  },
+  {
+   "code": "screen",
+   "label": "نوع الشاشة",
+   "value": "OLED"
+  },
+  {
+   "code": "ram",
+   "label": "رام",
+   "value": "8GB"
+  }
+ ],
+ "manufacturer_value": "أبل",
+ "media_gallery": {
+  "images": []
+ }
+}

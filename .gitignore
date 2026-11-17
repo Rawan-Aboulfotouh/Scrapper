@@ -1,0 +1,16 @@
+# Python virtual environment (each computer builds its own)
+.venv/
+
+# Python cache and test cache
+__pycache__/
+.pytest_cache/
+
+# Scraped data, logs and run state (private, and they change every run)
+output/
+logs/
+state/
+
+# Backups and temporary files
+*.bak
+*.tmp
+*.damaged*
